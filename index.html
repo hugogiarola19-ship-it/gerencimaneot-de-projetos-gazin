@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projetos Complementares Gazin</title>
+  <meta name="description" content="Gerenciamento de projetos complementares (elétrico, climatização e prevenção contra incêndio) das unidades Gazin.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">G</span>
+      <div>
+        <strong>Projetos Complementares</strong>
+        <small>Gazin · Elétrico · Climatização · Prevenção</small>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-view="painel">Painel</button>
+      <button class="tab" data-view="projetos">Projetos</button>
+      <button class="tab" data-view="quadro">Quadro</button>
+      <button class="tab" data-view="prazos">Prazos</button>
+      <button class="tab" data-view="dados">Dados</button>
+    </nav>
+    <button class="btn primary" id="btn-novo">+ Novo projeto</button>
+  </header>
+
+  <main>
+    <!-- PAINEL -->
+    <section class="view active" id="view-painel">
+      <div class="kpis" id="kpis"></div>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Andamento por disciplina</h2>
+          <div id="por-disciplina"></div>
+        </div>
+        <div class="card">
+          <h2>Próximos prazos</h2>
+          <div id="proximos"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Distribuição por etapa</h2>
+        <div id="por-etapa"></div>
+      </div>
+    </section>
+
+    <!-- PROJETOS -->
+    <section class="view" id="view-projetos">
+      <div class="filters">
+        <input type="search" id="f-busca" placeholder="Buscar por código, unidade, cidade…">
+        <select id="f-status"></select>
+        <select id="f-disc"></select>
+        <select id="f-uf"></select>
+        <label class="chk"><input type="checkbox" id="f-atraso"> Só atrasados</label>
+      </div>
+      <div class="card flush">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Código</th><th>Unidade</th><th>Cidade/UF</th><th>Tipo</th>
+                <th>Elétrico</th><th>Climatização</th><th>Prevenção</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-projetos"></tbody>
+          </table>
+        </div>
+        <p class="empty" id="empty-projetos" hidden>Nenhum projeto encontrado.</p>
+      </div>
+    </section>
+
+    <!-- QUADRO -->
+    <section class="view" id="view-quadro">
+      <div class="filters">
+        <div class="seg" id="q-disc"></div>
+        <input type="search" id="q-busca" placeholder="Filtrar cartões…">
+      </div>
+      <div class="kanban" id="kanban"></div>
+      <p class="hint">Arraste os cartões entre as colunas para mudar a etapa.</p>
+    </section>
+
+    <!-- PRAZOS -->
+    <section class="view" id="view-prazos">
+      <div class="filters">
+        <div class="seg" id="p-disc"></div>
+        <label class="chk"><input type="checkbox" id="p-concluidos"> Mostrar concluídos</label>
+      </div>
+      <div id="lista-prazos"></div>
+    </section>
+
+    <!-- DADOS -->
+    <section class="view" id="view-dados">
+      <div class="grid-2">
+        <div class="card">
+          <h2>Backup</h2>
+          <p>Os dados ficam salvos neste navegador. Exporte um backup regularmente ou para levar para outro computador.</p>
+          <div class="row">
+            <button class="btn" id="btn-export-json">Exportar backup (.json)</button>
+            <label class="btn">Importar backup<input type="file" id="inp-import" accept="application/json,.json" hidden></label>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Relatórios</h2>
+          <p>Planilha com uma linha por projeto × disciplina (abre no Excel).</p>
+          <div class="row">
+            <button class="btn" id="btn-export-csv">Exportar planilha (.csv)</button>
+            <button class="btn" onclick="window.print()">Imprimir</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Responsáveis</h2>
+          <p>Nomes sugeridos no campo “Responsável” das disciplinas (um por linha).</p>
+          <textarea id="inp-equipe" rows="5"></textarea>
+          <div class="row"><button class="btn" id="btn-salvar-equipe">Salvar lista</button></div>
+        </div>
+        <div class="card">
+          <h2>Dados de exemplo</h2>
+          <p>Carregue projetos fictícios para conhecer o sistema, ou apague tudo para começar.</p>
+          <div class="row">
+            <button class="btn" id="btn-exemplo">Carregar exemplos</button>
+            <button class="btn danger" id="btn-limpar">Apagar todos os dados</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL DO PROJETO -->
+  <dialog id="dlg">
+    <form id="form-projeto" method="dialog">
+      <header class="dlg-head">
+        <h2 id="dlg-titulo">Novo projeto</h2>
+        <button type="button" class="icon" data-close aria-label="Fechar">×</button>
+      </header>
+      <div class="dlg-body">
+        <fieldset class="grid-form">
+          <label>Código<input name="codigo" placeholder="ex.: GZ-2026-014"></label>
+          <label class="span-2">Unidade / obra<input name="nome" required placeholder="ex.: Loja 312 – Centro"></label>
+          <label>Tipo<select name="tipo"></select></label>
+          <label>Cidade<input name="cidade"></label>
+          <label>UF<input name="uf" maxlength="2"></label>
+          <label>Área (m²)<input name="area" type="number" min="0" step="any"></label>
+          <label>Status<select name="status"></select></label>
+          <label>Solicitado em<input name="solicitacao" type="date"></label>
+          <label>Entrega final<input name="prazoFinal" type="date"></label>
+          <label class="span-2">Contato Gazin<input name="contato" placeholder="nome / setor / telefone"></label>
+          <label class="span-4">Observações<textarea name="obs" rows="2"></textarea></label>
+        </fieldset>
+
+        <div class="disc-tabs" id="disc-tabs"></div>
+        <div id="disc-panels"></div>
+
+        <div class="hist">
+          <h3>Histórico</h3>
+          <div class="row">
+            <input id="hist-texto" placeholder="Registrar ocorrência (reunião, revisão, pendência…)">
+            <button type="button" class="btn" id="btn-hist">Adicionar</button>
+          </div>
+          <ul id="hist-lista"></ul>
+        </div>
+      </div>
+      <footer class="dlg-foot">
+        <button type="button" class="btn danger" id="btn-excluir">Excluir</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancelar</button>
+        <button type="submit" class="btn primary">Salvar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
