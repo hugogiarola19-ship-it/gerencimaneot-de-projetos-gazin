@@ -8,7 +8,7 @@ Sistema web para acompanhar os projetos complementares das unidades Gazin, segui
    - quantidade de ar calculada **automaticamente**: área de venda ÷ (57000/700), com duas casas decimais (sugere o nº de equipamentos arredondando para cima, que pode ser alterado);
    - distribuição dos equipamentos (avanço, painel de TVs) → cotar centro e ponto de dreno → gerar PDF → enviar no grupo e no Drive.
 2. **Prevenção**
-   - tipo de projeto definido **automaticamente** pela área total e pelo estado: acima do limite da UF é *completo (com hidrante)*, até o limite é *simplificado*. Os limites por estado ficam em **Dados** (padrão 750 m², ajuste conforme a norma do Corpo de Bombeiros de cada estado). Também é possível definir manualmente em cada projeto;
+   - tipo de projeto definido **automaticamente** pela área total e pelo estado, para a ocupação C-1 do Corpo de Bombeiros: acima do limite da UF é *completo (com hidrante)*, até o limite é *simplificado*. Os limites por estado ficam em **Dados** (estados da Gazin: AC, AM, PA, RO, MT, GO, TO, MS, MG e RS; padrão 750 m², ajuste conforme a norma do Corpo de Bombeiros de cada estado). Também é possível definir manualmente em cada projeto;
    - placas de sinalização → iluminação de emergência → extintores → (hidrantes, se completo) → gerar PDF → enviar no grupo e no Drive.
 3. **Elétrico**
    - quadro de circuitos gerado **automaticamente** a partir da tabela padrão, com o número de circuitos de ar igual ao de equipamentos da climatização (pode ser alterado). A tabela pode ser copiada para o Excel/AutoCAD ou baixada em .csv, e o padrão é editável em **Dados**;

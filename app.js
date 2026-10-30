@@ -8,11 +8,16 @@
 // Climatização: quantidade de ar = área de venda ÷ (57000 / 700)
 const FATOR_AR = 57000 / 700;
 
-// Prevenção: acima deste limite de área total (m²) o projeto é completo, com hidrante.
+// Prevenção: acima deste limite de área total (m²) o projeto é completo, com hidrante (ocupação C-1).
 // Valor padrão por estado; cada UF pode ser ajustada na aba "Dados" conforme a norma do Corpo de Bombeiros.
 const LIMITE_HIDRANTE_PADRAO = 750;
-const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE',
-  'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
+// Estados onde a Gazin atua
+const ESTADOS = { AC: 'Acre', AM: 'Amazonas', PA: 'Pará', RO: 'Rondônia', MT: 'Mato Grosso', GO: 'Goiás',
+  TO: 'Tocantins', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', RS: 'Rio Grande do Sul' };
+const UFS = Object.keys(ESTADOS);
+
+// Classificação da ocupação das lojas no Corpo de Bombeiros
+const OCUPACAO = 'C-1';
 
 // Elétrico: tabela de circuitos padrão (Descrição; Esquema; Método de inst.; Tensão; Seção mm²; Disjuntor A).
 // As linhas "AR nn" formam o bloco de ar-condicionado: o sistema mantém tantas quantos forem os equipamentos.
@@ -62,7 +67,7 @@ const DISCIPLINAS = {
     nome: 'Prevenção',
     cor: 'var(--c-prevencao)',
     passos: [
-      { id: 'norma', nome: 'Verificar norma do estado (completo ou simplificado)' },
+      { id: 'norma', nome: 'Verificar norma do estado para ocupação C-1 (completo ou simplificado)' },
       { id: 'sinalizacao', nome: 'Posicionar placas de sinalização' },
       { id: 'iluminacao', nome: 'Posicionar iluminação de emergência' },
       { id: 'extintores', nome: 'Posicionar extintores' },
@@ -560,7 +565,7 @@ function renderDados() {
   $('#inp-equipe').value = state.equipe.join('\n');
   $('#inp-circuitos').value = state.config.circuitos;
   $('#grid-limites').innerHTML = UFS.map(uf =>
-    `<label>${uf}<input type="number" min="1" step="any" data-uf="${uf}" value="${esc(state.config.limites[uf] ?? '')}" placeholder="${LIMITE_HIDRANTE_PADRAO}"></label>`).join('');
+    `<label title="${ESTADOS[uf]}">${uf} · ${ESTADOS[uf]}<input type="number" min="1" step="any" data-uf="${uf}" value="${esc(state.config.limites[uf] ?? '')}" placeholder="${LIMITE_HIDRANTE_PADRAO}"></label>`).join('');
 }
 
 function baixar(nome, conteudo, tipo) {
@@ -628,7 +633,8 @@ function abrirProjeto(id, disc) {
   $('#dlg-titulo').textContent = orig ? (orig.codigo || 'Projeto') + ' · ' + orig.nome : 'Novo projeto';
   f.tipo.innerHTML = TIPOS.map(t => `<option>${t}</option>`).join('');
   f.status.innerHTML = STATUS.map(s => `<option>${s}</option>`).join('');
-  f.uf.innerHTML = '<option value="">—</option>' + UFS.map(u => `<option>${u}</option>`).join('');
+  const ufs = editando.uf && !UFS.includes(editando.uf) ? [...UFS, editando.uf] : UFS;
+  f.uf.innerHTML = '<option value="">—</option>' + ufs.map(u => `<option value="${u}">${u}${ESTADOS[u] ? ' – ' + ESTADOS[u] : ''}</option>`).join('');
   CAMPOS_GERAIS.forEach(k => { f[k].value = editando[k] ?? ''; });
   $('#btn-excluir').hidden = !orig;
 
@@ -715,10 +721,10 @@ function atualizarCalculos() {
     <div class="res" style="--cor:var(--c-climatizacao)"><small>Climatização · quantidade de ar</small>
       <strong>${q === null ? '—' : num2.format(q)}</strong>
       <span>${q === null ? 'Informe a área de venda' : `${num0.format(p.areaVenda)} m² ÷ (57000/700) → ${equip} equipamento(s)`}</span></div>
-    <div class="res" style="--cor:var(--c-prevencao)"><small>Prevenção · tipo de projeto</small>
+    <div class="res" style="--cor:var(--c-prevencao)"><small>Prevenção · ocupação ${OCUPACAO}</small>
       <strong>${tipo ? nomePrevencao(tipo) : '—'}</strong>
       <span>${p.disciplinas.prevencao.classificacao !== 'auto' ? 'Definido manualmente'
-        : tipo ? `${num0.format(area)} m² ${tipo === 'completo' ? '>' : '≤'} ${num0.format(limiteUF(p.uf))} m² (limite ${p.uf})` : 'Informe área total e UF'}</span></div>
+        : tipo ? `${num0.format(area)} m² ${tipo === 'completo' ? '>' : '≤'} ${num0.format(limiteUF(p.uf))} m² (limite ${p.uf}, ${OCUPACAO})` : 'Informe área total e UF'}</span></div>
     <div class="res" style="--cor:var(--c-eletrico)"><small>Elétrico · quadro de circuitos</small>
       <strong>${circ.length} circuitos</strong>
       <span>${nAr} circuito(s) de ar${p.disciplinas.eletrico.circuitosAr === '' ? ' (da climatização)' : ''}</span></div>`;
@@ -846,7 +852,7 @@ function exemplos() {
   const disc = (etapa, prazo, feitos = []) => ({ ...novaDisciplina(true), etapa, prazo: d(prazo), responsavel: 'Hugo', feitos });
   const off = () => novaDisciplina(false);
   return [
-    { codigo: 'GZ-26-001', nome: 'Loja nova – Av. Brasil', cidade: 'Umuarama', uf: 'PR', tipo: 'Loja nova', areaTotal: 1250, areaVenda: 980,
+    { codigo: 'GZ-26-001', nome: 'Loja nova – Av. Brasil', cidade: 'Campo Grande', uf: 'MS', tipo: 'Loja nova', areaTotal: 1250, areaVenda: 980,
       layout: d(-6), prazoFinal: d(25), contato: 'Eng. obras Gazin',
       disciplinas: { climatizacao: disc(2, 2, ['calculo', 'distribuicao']), prevencao: disc(2, 9, ['norma']), eletrico: disc(1, 16) } },
     { codigo: 'GZ-26-002', nome: 'Reforma loja 218', cidade: 'Cuiabá', uf: 'MT', tipo: 'Reforma de loja', areaTotal: 620, areaVenda: 540,

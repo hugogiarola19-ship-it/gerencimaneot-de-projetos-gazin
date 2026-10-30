@@ -238,7 +238,7 @@ h3.sub.grow { flex: 1; margin: 0; }
 .table.mini tr.ar td { background: #eef7fc; }
 .notas { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 500; }
 .bar.fina { height: 4px; margin: 8px 0 6px; }
-.grid-uf { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; margin-bottom: 12px; }
+.grid-uf { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-bottom: 12px; }
 .grid-uf label { font-size: 11px; font-weight: 600; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .grid-uf input { padding: 5px 6px; }
 textarea.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
