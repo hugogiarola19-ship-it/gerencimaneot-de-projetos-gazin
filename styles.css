@@ -18,6 +18,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   font-family: 'Inter', system-ui, sans-serif;
@@ -81,6 +82,7 @@ main { padding: 20px 24px 40px; max-width: 1400px; margin: 0 auto; }
 .btn.primary { background: var(--amarelo); border-color: var(--amarelo); color: var(--azul-escuro); font-weight: 600; }
 .btn.primary:hover { filter: brightness(.96); }
 .btn.danger { color: var(--erro); border-color: #f4c7c3; }
+.btn.sm { padding: 5px 10px; font-size: 12px; text-decoration: none; }
 .icon { border: 0; background: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--muted); }
 
 input, select, textarea {
@@ -138,6 +140,7 @@ textarea { resize: vertical; }
 .table td { padding: 10px 12px; border-bottom: 1px solid var(--borda); vertical-align: middle; }
 .table tbody tr { cursor: pointer; }
 .table tbody tr:hover { background: #f7f9fd; }
+.table td small.aviso { color: var(--alerta); }
 .table td small { display: block; color: var(--muted); font-size: 11px; margin-top: 2px; }
 
 /* ---------- listas ---------- */
@@ -211,4 +214,35 @@ fieldset { border: 0; padding: 0; margin: 0; }
   body { background: #fff; }
   .view { display: block !important; page-break-after: always; }
   .card, .kpi { box-shadow: none; }
+}
+
+/* ---------- fluxo / cálculos ---------- */
+h3.sub { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+h3.sub.grow { flex: 1; margin: 0; }
+.resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.res { border: 1px solid var(--borda); border-top: 3px solid var(--cor); border-radius: 8px; padding: 10px 12px; background: #fbfcfe; }
+.res small { display: block; color: var(--muted); font-size: 11px; }
+.res strong { display: block; font-size: 18px; margin: 2px 0; }
+.res span { font-size: 12px; color: var(--muted); }
+.disc-panel ol.checklist { list-style: none; counter-reset: passo; padding: 0; margin: 0 0 14px; columns: 1; }
+.disc-panel ol.checklist li { counter-increment: passo; border-bottom: 1px dashed var(--borda); }
+.disc-panel ol.checklist li[hidden] { display: none; }
+.disc-panel ol.checklist label { padding: 7px 0; }
+.disc-panel ol.checklist label::before { content: counter(passo) '.'; color: var(--muted); min-width: 18px; order: -1; }
+.disc-panel ol.checklist label:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+.grid-form + h3.sub { margin-top: 16px; }
+.circuitos { margin-bottom: 14px; }
+.circuitos .row { margin-bottom: 8px; }
+.table.mini th, .table.mini td { padding: 5px 8px; font-size: 12px; }
+.table.mini tbody tr { cursor: default; }
+.table.mini tr.ar td { background: #eef7fc; }
+.notas { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.bar.fina { height: 4px; margin: 8px 0 6px; }
+.grid-uf { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; margin-bottom: 12px; }
+.grid-uf label { font-size: 11px; font-weight: 600; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+.grid-uf input { padding: 5px 6px; }
+textarea.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+code { background: #eef1f6; padding: 1px 4px; border-radius: 4px; font-size: 12px; }
+@media (max-width: 760px) {
+  .resumo { grid-template-columns: 1fr; }
 }

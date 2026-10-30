@@ -1,84 +1,109 @@
 'use strict';
 
 /* =========================================================
-   Configuração das disciplinas, etapas e entregáveis
+   Configuração do fluxo de trabalho
+   Ordem: recebe o layout → climatização → prevenção → elétrico
    ========================================================= */
+
+// Climatização: quantidade de ar = área de venda ÷ (57000 / 700)
+const FATOR_AR = 57000 / 700;
+
+// Prevenção: acima deste limite de área total (m²) o projeto é completo, com hidrante.
+// Valor padrão por estado; cada UF pode ser ajustada na aba "Dados" conforme a norma do Corpo de Bombeiros.
+const LIMITE_HIDRANTE_PADRAO = 750;
+const UFS = ['AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT', 'PA', 'PB', 'PE',
+  'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'];
+
+// Elétrico: tabela de circuitos padrão (Descrição; Esquema; Método de inst.; Tensão; Seção mm²; Disjuntor A).
+// As linhas "AR nn" formam o bloco de ar-condicionado: o sistema mantém tantas quantos forem os equipamentos.
+const CIRCUITOS_PADRAO = `ILUM. VENDAS 01; F+F; B1; 220 V; 2,5; 10
+ILUM. VENDAS 02; F+F; B1; 220 V; 4; 10
+ILUM. EXTERNA; F+F+T; B1; 220 V; 2,5; 10
+ILUM. SPOT; F+F+T; B1; 220 V; 2,5; 10
+ILUM. EMERGÊNCIA; F+F+T; B1; 220 V; 2,5; 10
+ILUM. B.W.C/COPA/DEP; F+F; B1; 220 V; 2,5; 10
+AR 01; F+F+T; B1; 220 V; 6; 40
+AR 02; F+F+T; B1; 220 V; 6; 40
+AR 03; F+F+T; B1; 220 V; 6; 40
+AR 04; F+F+T; B1; 220 V; 6; 40
+AR 05; F+F+T; B1; 220 V; 6; 40
+AR 06; F+F+T; B1; 220 V; 6; 40
+AR 07; F+F+T; B1; 220 V; 10; 40
+AR 08; F+F+T; B1; 220 V; 6; 20
+MOTOR PORTA; F+F+T; B1; 220 V; 2,5; 16
+CORTINA DE AR; F+F+T; B1; 220 V; 2,5; 10
+NOBREAK; 2F+N+T; B1; 220/127 V; 6; 32
+TUG CUIDADOS PESSOAIS; F+N+T; B1; 127 V; 2,5; 10
+TUG ILHA DE TECNOLOGIA; F+F+T; B1; 220 V; 2,5; 10
+TV 01; F+F+T; B1; 220 V; 2,5; 10
+TV 02; F+F+T; B1; 220 V; 2,5; 10
+TUG B.W.C; F+F+T; B1; 220 V; 4; 10
+TUG COPA/BEBEDOURO; F+F+T; B1; 220 V; 4; 10
+TUG ALARME/SOM; F+F+T; B1; 220 V; 2,5; 10
+TUG AVAN. COZINHA/ROUPEIRO; F+F+T; B1; 220 V; 2,5; 16
+TUG PORTA 127V; F+N+T; B1; 127 V; 6; 40
+TUG PORTA 220V; F+F+T; B1; 220 V; 6; 40`;
+
+const PASSO_PDF = { id: 'pdf', nome: 'Gerar PDF' };
+const PASSO_ENVIO = { id: 'envio', nome: 'Enviar no grupo e no Drive' };
+
 const DISCIPLINAS = {
-  eletrico: {
-    nome: 'Elétrico',
-    cor: 'var(--c-eletrico)',
-    aprovacao: 'Concessionária de energia',
-    entregaveis: [
-      'Levantamento de cargas e padrão de entrada',
-      'Quadro de cargas e balanceamento',
-      'Diagrama unifilar / multifilar',
-      'Planta de iluminação',
-      'Planta de tomadas e pontos de força',
-      'Alimentadores e infraestrutura (eletrocalhas/eletrodutos)',
-      'SPDA e aterramento',
-      'Cabeamento estruturado / CFTV / lógica',
-      'Memorial descritivo e de cálculo',
-      'Lista de materiais / orçamento',
-      'Projeto aprovado na concessionária',
-      'ART emitida'
-    ]
-  },
   climatizacao: {
     nome: 'Climatização',
     cor: 'var(--c-climatizacao)',
-    aprovacao: 'Validação Gazin / fornecedor',
-    entregaveis: [
-      'Cálculo de carga térmica',
-      'Definição e seleção de equipamentos',
-      'Planta de layout das evaporadoras e condensadoras',
-      'Rede frigorígena (dimensionamento)',
-      'Rede de drenos',
-      'Renovação de ar e exaustão',
-      'Pontos elétricos para climatização (interface c/ elétrico)',
-      'Detalhes de suportes e bases',
-      'Memorial descritivo e de cálculo',
-      'Lista de materiais / orçamento',
-      'Plano PMOC',
-      'ART emitida'
+    passos: [
+      { id: 'calculo', nome: 'Calcular quantidade de ar (área de venda ÷ 57000/700)' },
+      { id: 'distribuicao', nome: 'Distribuir equipamentos no prédio (avanço, painel de TVs)' },
+      { id: 'dreno', nome: 'Cotar centro e ponto de dreno' },
+      PASSO_PDF, PASSO_ENVIO
     ]
   },
   prevencao: {
     nome: 'Prevenção',
     cor: 'var(--c-prevencao)',
-    aprovacao: 'Corpo de Bombeiros',
-    entregaveis: [
-      'Classificação da edificação e medidas exigidas',
-      'Saídas de emergência e rotas de fuga',
-      'Sinalização de emergência',
-      'Iluminação de emergência',
-      'Extintores',
-      'Hidrantes / mangotinhos e reserva técnica',
-      'Alarme e detecção de incêndio',
-      'Memorial descritivo e de cálculo',
-      'Protocolo do projeto (PPCI / PSCIP)',
-      'Projeto aprovado no Corpo de Bombeiros',
-      'Vistoria / emissão do certificado (AVCB/CLCB)',
-      'ART emitida'
+    passos: [
+      { id: 'norma', nome: 'Verificar norma do estado (completo ou simplificado)' },
+      { id: 'sinalizacao', nome: 'Posicionar placas de sinalização' },
+      { id: 'iluminacao', nome: 'Posicionar iluminação de emergência' },
+      { id: 'extintores', nome: 'Posicionar extintores' },
+      { id: 'hidrantes', nome: 'Hidrantes e reserva técnica', so: 'completo' },
+      PASSO_PDF, PASSO_ENVIO
+    ]
+  },
+  eletrico: {
+    nome: 'Elétrico',
+    cor: 'var(--c-eletrico)',
+    passos: [
+      { id: 'distribuicao', nome: 'Distribuir lâmpadas, tomadas, pontos de ar e demais pontos (tabela de circuitos)' },
+      { id: 'caixa', nome: 'Detalhe: caixa' },
+      { id: 'leg-condutos', nome: 'Detalhe: legenda de condutos' },
+      { id: 'leg-fios', nome: 'Detalhe: legenda de fios' },
+      { id: 'leg-pecas', nome: 'Detalhe: legenda de peças' },
+      { id: 'quadro-cargas', nome: 'Detalhe: quadro de cargas' },
+      { id: 'quadro-demanda', nome: 'Detalhe: quadro de demanda' },
+      { id: 'unifilar', nome: 'Detalhe: diagrama unifilar' },
+      { id: 'cotas', nome: 'Cotar todos os pontos elétricos' },
+      PASSO_PDF, PASSO_ENVIO
     ]
   }
 };
 const DISC_IDS = Object.keys(DISCIPLINAS);
 
 const ETAPAS = [
-  { nome: 'Aguardando informações', cor: '#98a2b3' },
-  { nome: 'Levantamento',           cor: '#7a8cff' },
-  { nome: 'Estudo preliminar',      cor: '#5b6cf0' },
-  { nome: 'Projeto executivo',      cor: '#0a4a9c' },
-  { nome: 'Revisão Gazin',          cor: '#d97706' },
-  { nome: 'Aprovação externa',      cor: '#9e5cf0' },
-  { nome: 'Concluído',              cor: '#12925a' }
+  { nome: 'Aguardando layout', cor: '#98a2b3' },
+  { nome: 'A fazer',           cor: '#7a8cff' },
+  { nome: 'Em andamento',      cor: '#0a4a9c' },
+  { nome: 'Revisão / ajustes', cor: '#d97706' },
+  { nome: 'Entregue',          cor: '#12925a' }
 ];
 const ULTIMA_ETAPA = ETAPAS.length - 1;
+const ETAPA_REVISAO = 3;
 
-const TIPOS = ['Loja nova', 'Reforma de loja', 'Ampliação', 'Centro de distribuição', 'Escritório / administrativo', 'Indústria', 'Outro'];
+const TIPOS = ['Loja nova', 'Reforma de loja', 'Ampliação', 'Centro de distribuição', 'Escritório / administrativo', 'Outro'];
 const STATUS = ['Ativo', 'Pausado', 'Concluído', 'Cancelado'];
+const CAMPOS_GERAIS = ['codigo', 'nome', 'tipo', 'cidade', 'uf', 'areaTotal', 'areaVenda', 'layout', 'prazoFinal', 'status', 'drive', 'contato', 'obs'];
 
-const STORAGE_KEY = 'gazin-complementares-v1';
+const STORAGE_KEY = 'gazin-complementares-v2';
 
 /* =========================================================
    Estado e persistência
@@ -86,7 +111,7 @@ const STORAGE_KEY = 'gazin-complementares-v1';
 let state = carregar();
 
 function estadoVazio() {
-  return { versao: 1, equipe: [], projetos: [] };
+  return { versao: 2, equipe: [], config: { limites: {}, circuitos: CIRCUITOS_PADRAO }, projetos: [] };
 }
 
 function carregar() {
@@ -107,31 +132,37 @@ function salvar() {
 
 function normalizarEstado(s) {
   const base = estadoVazio();
-  const out = { ...base, ...s };
+  const out = { ...base, ...s, versao: 2 };
   out.equipe = Array.isArray(out.equipe) ? out.equipe : [];
+  out.config = { ...base.config, ...(s.config || {}) };
+  out.config.limites = out.config.limites && typeof out.config.limites === 'object' ? out.config.limites : {};
   out.projetos = (Array.isArray(out.projetos) ? out.projetos : []).map(normalizarProjeto);
   return out;
 }
 
 function novaDisciplina(ativa = true) {
-  return { ativa, etapa: 0, inicio: '', prazo: '', responsavel: '', valor: '', revisao: 0, entregues: [], notas: '' };
+  return { ativa, etapa: 0, prazo: '', responsavel: '', valor: '', revisao: 0, feitos: [], notas: '', entregueEm: '',
+    equipamentos: '', classificacao: 'auto', circuitosAr: '' };
 }
 
 function normalizarProjeto(p) {
   const proj = {
     id: p.id || uid(),
-    codigo: p.codigo || '', nome: p.nome || '', cidade: p.cidade || '', uf: (p.uf || '').toUpperCase(),
-    tipo: p.tipo || TIPOS[0], area: p.area ?? '', status: STATUS.includes(p.status) ? p.status : 'Ativo',
-    solicitacao: p.solicitacao || '', prazoFinal: p.prazoFinal || '', contato: p.contato || '', obs: p.obs || '',
+    codigo: p.codigo || '', nome: p.nome || '', tipo: p.tipo || TIPOS[0],
+    cidade: p.cidade || '', uf: (p.uf || '').toUpperCase(),
+    areaTotal: p.areaTotal ?? p.area ?? '', areaVenda: p.areaVenda ?? '',
+    layout: p.layout || '', prazoFinal: p.prazoFinal || '',
+    status: STATUS.includes(p.status) ? p.status : 'Ativo',
+    drive: p.drive || '', contato: p.contato || '', obs: p.obs || '',
     criadoEm: p.criadoEm || new Date().toISOString(),
     historico: Array.isArray(p.historico) ? p.historico : [],
     disciplinas: {}
   };
   DISC_IDS.forEach(id => {
-    proj.disciplinas[id] = { ...novaDisciplina(false), ...(p.disciplinas?.[id] || {}) };
-    const d = proj.disciplinas[id];
+    const d = { ...novaDisciplina(false), ...(p.disciplinas?.[id] || {}) };
     d.etapa = Math.min(Math.max(+d.etapa || 0, 0), ULTIMA_ETAPA);
-    d.entregues = Array.isArray(d.entregues) ? d.entregues : [];
+    d.feitos = Array.isArray(d.feitos) ? d.feitos.filter(f => typeof f === 'string') : [];
+    proj.disciplinas[id] = d;
   });
   return proj;
 }
@@ -145,10 +176,10 @@ function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function hojeISO() {
-  const d = new Date();
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+function isoLocal(d = new Date()) {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString();
 }
+function hojeISO() { return isoLocal().slice(0, 10); }
 
 function fmtData(iso) {
   if (!iso) return '—';
@@ -158,11 +189,12 @@ function fmtData(iso) {
 
 function diasAte(iso) {
   if (!iso) return null;
-  const ms = new Date(iso + 'T00:00:00') - new Date(hojeISO() + 'T00:00:00');
+  const ms = new Date(iso.slice(0, 10) + 'T00:00:00') - new Date(hojeISO() + 'T00:00:00');
   return Math.round(ms / 86400000);
 }
 
-const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const num2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num0 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 
 function $(sel, root = document) { return root.querySelector(sel); }
 function $$(sel, root = document) { return [...root.querySelectorAll(sel)]; }
@@ -175,15 +207,110 @@ function toast(msg) {
   toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+function urlSegura(u) {
+  return /^https?:\/\//i.test(u || '') ? u : '';
+}
+
+/* =========================================================
+   Cálculos automáticos
+   ========================================================= */
+
+/* Climatização: quantidade de ar com duas casas decimais */
+function qtdAr(p) {
+  const a = parseFloat(p.areaVenda);
+  return a > 0 ? Math.round((a / FATOR_AR) * 100) / 100 : null;
+}
+
+/* Número de equipamentos adotado: valor informado ou a quantidade de ar arredondada para cima */
+function equipamentosAr(p) {
+  const n = parseInt(p.disciplinas.climatizacao.equipamentos, 10);
+  if (n > 0) return n;
+  const q = qtdAr(p);
+  return q ? Math.ceil(q) : 0;
+}
+
+function limiteUF(uf) {
+  const v = parseFloat(state.config.limites[uf]);
+  return v > 0 ? v : LIMITE_HIDRANTE_PADRAO;
+}
+
+/* Prevenção: 'completo' (com hidrante), 'simplificado' ou null se faltar área/UF */
+function tipoPrevencao(p) {
+  const c = p.disciplinas.prevencao.classificacao;
+  if (c === 'completo' || c === 'simplificado') return c;
+  const a = parseFloat(p.areaTotal);
+  if (!(a > 0) || !p.uf) return null;
+  return a > limiteUF(p.uf) ? 'completo' : 'simplificado';
+}
+
+function nomePrevencao(t) {
+  return t === 'completo' ? 'Completo (com hidrante)' : t === 'simplificado' ? 'Simplificado (sem hidrante)' : 'Informe área total e UF';
+}
+
+function circuitosArDe(p) {
+  const n = parseInt(p.disciplinas.eletrico.circuitosAr, 10);
+  return n >= 0 && p.disciplinas.eletrico.circuitosAr !== '' ? n : equipamentosAr(p);
+}
+
+function lerTabelaCircuitos(texto) {
+  return String(texto || '').split('\n').map(l => l.split(';').map(c => c.trim())).filter(c => c[0]);
+}
+
+/* Gera o quadro de circuitos do projeto a partir da tabela padrão, com N circuitos de ar */
+function gerarCircuitos(p) {
+  const base = lerTabelaCircuitos(state.config.circuitos);
+  const ehAr = c => /^AR\s*\d+$/i.test(c[0]);
+  const ar = base.filter(ehAr);
+  const n = circuitosArDe(p);
+  const out = [];
+  let inseriuAr = false;
+  base.forEach(c => {
+    if (!ehAr(c)) { out.push(c); return; }
+    if (inseriuAr) return;
+    inseriuAr = true;
+    for (let i = 0; i < n; i++) {
+      const modelo = ar[i] || ar[0];
+      out.push([`AR ${String(i + 1).padStart(2, '0')}`, ...modelo.slice(1)]);
+    }
+  });
+  return out.map((c, i) => [String(i + 1), ...c]);
+}
+
+/* Passos visíveis da disciplina (hidrante só aparece no projeto completo) */
+function passosDe(p, id) {
+  return DISCIPLINAS[id].passos.filter(s => !s.so || s.so === tipoPrevencao(p));
+}
+
+function contagem(p, id) {
+  const passos = passosDe(p, id);
+  const feitos = passos.filter(s => p.disciplinas[id].feitos.includes(s.id)).length;
+  return { feitos, total: passos.length };
+}
+
+function progresso(p, id) {
+  if (p.disciplinas[id].etapa === ULTIMA_ETAPA) return 100;
+  const { feitos, total } = contagem(p, id);
+  return total ? Math.round((feitos / total) * 100) : 0;
+}
+
+/* Avança a etapa automaticamente conforme o layout e o checklist (nunca rebaixa, exceto sem layout) */
+function ajustarEtapa(p, id) {
+  const d = p.disciplinas[id];
+  const { feitos, total } = contagem(p, id);
+  if (!p.layout && d.etapa <= 1) d.etapa = 0;
+  if (p.layout && d.etapa === 0) d.etapa = 1;
+  if (feitos > 0 && d.etapa < 2) d.etapa = 2;
+  if (total && feitos === total && d.etapa < ETAPA_REVISAO) d.etapa = ULTIMA_ETAPA;
+  if (d.etapa === ULTIMA_ETAPA && !d.entregueEm) d.entregueEm = hojeISO();
+  if (d.etapa < ULTIMA_ETAPA) d.entregueEm = '';
+}
+
 /* Disciplina considerada "em aberto" (conta para prazos e atrasos) */
 function emAberto(p, d) {
   return d.ativa && d.etapa < ULTIMA_ETAPA && (p.status === 'Ativo' || p.status === 'Pausado');
 }
 function atrasada(p, d) {
   return emAberto(p, d) && d.prazo && diasAte(d.prazo) < 0;
-}
-function progresso(d) {
-  return Math.round((d.etapa / ULTIMA_ETAPA) * 100);
 }
 
 /* Lista plana de (projeto, disciplina) ativos */
@@ -217,48 +344,48 @@ function render() {
    ========================================================= */
 function renderPainel() {
   const ativos = state.projetos.filter(p => p.status === 'Ativo');
+  const semLayout = ativos.filter(p => !p.layout);
   const todos = itens();
   const abertos = todos.filter(x => emAberto(x.p, x.d));
   const atrasados = abertos.filter(x => atrasada(x.p, x.d));
   const semana = abertos.filter(x => { const n = diasAte(x.d.prazo); return n !== null && n >= 0 && n <= 7; });
-  const carteira = abertos.reduce((s, x) => s + (parseFloat(x.d.valor) || 0), 0);
-  const concluidas = todos.filter(x => x.d.etapa === ULTIMA_ETAPA).length;
+  const entregues30 = todos.filter(x => x.d.etapa === ULTIMA_ETAPA && x.d.entregueEm && diasAte(x.d.entregueEm) >= -30).length;
 
   $('#kpis').innerHTML = [
     ['Projetos ativos', ativos.length],
-    ['Disciplinas em andamento', abertos.length],
+    ['Aguardando layout', semLayout.length],
+    ['Disciplinas em aberto', abertos.length],
     ['Atrasadas', atrasados.length, atrasados.length ? 'alerta' : ''],
     ['Vencem em 7 dias', semana.length],
-    ['Disciplinas concluídas', concluidas],
-    ['Valor em carteira', moeda.format(carteira)]
+    ['Entregues (30 dias)', entregues30]
   ].map(([l, v, c]) => `<div class="kpi ${c || ''}"><small>${l}</small><strong>${v}</strong></div>`).join('');
 
   $('#por-disciplina').innerHTML = DISC_IDS.map(id => {
     const ds = todos.filter(x => x.id === id && x.p.status !== 'Cancelado');
-    const media = ds.length ? Math.round(ds.reduce((s, x) => s + progresso(x.d), 0) / ds.length) : 0;
+    const media = ds.length ? Math.round(ds.reduce((s, x) => s + progresso(x.p, id), 0) / ds.length) : 0;
     const atr = ds.filter(x => atrasada(x.p, x.d)).length;
     return `<div class="disc-row">
       <strong><span class="disc-dot" style="background:${DISCIPLINAS[id].cor}"></span> ${DISCIPLINAS[id].nome}</strong>
       <div class="bar"><span style="width:${media}%;background:${DISCIPLINAS[id].cor}"></span></div>
       <span class="meta">${ds.length} proj. · ${media}%${atr ? ` · <b style="color:var(--erro)">${atr} atras.</b>` : ''}</span>
     </div>`;
-  }).join('') || '<p class="empty">Sem dados.</p>';
+  }).join('');
 
   const prox = abertos.filter(x => x.d.prazo)
     .sort((a, b) => a.d.prazo.localeCompare(b.d.prazo)).slice(0, 8);
   $('#proximos').innerHTML = prox.length ? prox.map(itemPrazo).join('') : '<p class="empty">Nenhum prazo cadastrado.</p>';
 
-  const contagem = ETAPAS.map((_, i) => abertos.filter(x => x.d.etapa === i).length + (i === ULTIMA_ETAPA ? concluidas : 0));
-  const total = contagem.reduce((a, b) => a + b, 0);
+  const porEtapa = ETAPAS.map((_, i) => todos.filter(x => x.p.status !== 'Cancelado' && x.d.etapa === i).length);
+  const total = porEtapa.reduce((a, b) => a + b, 0);
   $('#por-etapa').innerHTML = total ? `
-    <div class="stack">${ETAPAS.map((e, i) => contagem[i]
-      ? `<span style="flex:${contagem[i]};background:${e.cor}" title="${e.nome}: ${contagem[i]}">${contagem[i]}</span>` : '').join('')}</div>
-    <div class="legend">${ETAPAS.map((e, i) => `<span><i style="background:${e.cor}"></i>${e.nome} (${contagem[i]})</span>`).join('')}</div>`
+    <div class="stack">${ETAPAS.map((e, i) => porEtapa[i]
+      ? `<span style="flex:${porEtapa[i]};background:${e.cor}" title="${e.nome}: ${porEtapa[i]}">${porEtapa[i]}</span>` : '').join('')}</div>
+    <div class="legend">${ETAPAS.map((e, i) => `<span><i style="background:${e.cor}"></i>${e.nome} (${porEtapa[i]})</span>`).join('')}</div>`
     : '<p class="empty">Cadastre um projeto para ver a distribuição.</p>';
 }
 
 function tagPrazo(p, d) {
-  if (d.etapa === ULTIMA_ETAPA) return '<span class="tag ok">Concluído</span>';
+  if (d.etapa === ULTIMA_ETAPA) return `<span class="tag ok">Entregue${d.entregueEm ? ' ' + fmtData(d.entregueEm) : ''}</span>`;
   if (!d.prazo) return '<span class="tag">sem prazo</span>';
   const n = diasAte(d.prazo);
   if (!emAberto(p, d)) return `<span class="tag">${fmtData(d.prazo)}</span>`;
@@ -268,10 +395,11 @@ function tagPrazo(p, d) {
 }
 
 function itemPrazo({ p, id, d }) {
+  const { feitos, total } = contagem(p, id);
   return `<div class="item" data-open="${p.id}" data-disc="${id}">
     <span class="disc-dot" style="background:${DISCIPLINAS[id].cor}"></span>
     <div class="grow"><strong>${esc(p.codigo ? p.codigo + ' · ' : '')}${esc(p.nome)}</strong>
-      <small>${DISCIPLINAS[id].nome} · ${ETAPAS[d.etapa].nome}${d.responsavel ? ' · ' + esc(d.responsavel) : ''}</small></div>
+      <small>${DISCIPLINAS[id].nome} · ${ETAPAS[d.etapa].nome} · ${feitos}/${total} passos${d.responsavel ? ' · ' + esc(d.responsavel) : ''}</small></div>
     ${tagPrazo(p, d)}
   </div>`;
 }
@@ -286,6 +414,7 @@ function preencherFiltros() {
     $(sel).innerHTML = `<button class="active" data-v="">Todas</button>` +
       DISC_IDS.map(id => `<button data-v="${id}">${DISCIPLINAS[id].nome}</button>`).join('');
   });
+  $('#th-disc').outerHTML = DISC_IDS.map(id => `<th>${DISCIPLINAS[id].nome}</th>`).join('');
 }
 
 function renderProjetos() {
@@ -306,14 +435,16 @@ function renderProjetos() {
   }).sort((a, b) => (a.status === 'Ativo' ? 0 : 1) - (b.status === 'Ativo' ? 0 : 1) || (b.criadoEm || '').localeCompare(a.criadoEm || ''));
 
   $('#tbody-projetos').innerHTML = lista.map(p => `<tr data-open="${p.id}">
-    <td><strong>${esc(p.codigo) || '—'}</strong></td>
-    <td>${esc(p.nome)}${p.prazoFinal ? `<small>Entrega: ${fmtData(p.prazoFinal)}</small>` : ''}</td>
+    <td><strong>${esc(p.codigo) || '—'}</strong>${p.layout ? `<small>Layout ${fmtData(p.layout)}</small>` : '<small class="aviso">sem layout</small>'}</td>
+    <td>${esc(p.nome)}<small>${esc(p.tipo)}</small></td>
     <td>${esc(p.cidade)}${p.uf ? '/' + esc(p.uf) : ''}</td>
-    <td>${esc(p.tipo)}</td>
+    <td>${p.areaVenda ? num0.format(p.areaVenda) : '—'} / ${p.areaTotal ? num0.format(p.areaTotal) : '—'}</td>
     ${DISC_IDS.map(id => {
       const d = p.disciplinas[id];
       if (!d.ativa) return '<td><span class="tag na">não se aplica</span></td>';
-      return `<td><span class="tag dot" style="color:${ETAPAS[d.etapa].cor}">${ETAPAS[d.etapa].nome}</span><small>${tagPrazo(p, d)}</small></td>`;
+      const { feitos, total } = contagem(p, id);
+      return `<td><span class="tag dot" style="color:${ETAPAS[d.etapa].cor}">${ETAPAS[d.etapa].nome}</span>
+        <small>${feitos}/${total} passos · ${d.etapa === ULTIMA_ETAPA ? 'em ' + fmtData(d.entregueEm) : tagPrazo(p, d)}</small></td>`;
     }).join('')}
     <td><span class="tag dot st-${p.status}">${p.status}</span></td>
   </tr>`).join('');
@@ -338,12 +469,16 @@ function renderQuadro() {
       .sort((a, b) => (a.d.prazo || '9999').localeCompare(b.d.prazo || '9999'));
     return `<div class="col" data-etapa="${i}">
       <div class="col-head"><span style="color:${e.cor}">● ${e.nome}</span><span>${col.length}</span></div>
-      ${col.map(({ p, id, d }) => `<div class="kcard" draggable="true" data-open="${p.id}" data-disc="${id}" style="border-left-color:${DISCIPLINAS[id].cor}">
+      ${col.map(({ p, id, d }) => {
+        const { feitos, total } = contagem(p, id);
+        return `<div class="kcard" draggable="true" data-open="${p.id}" data-disc="${id}" style="border-left-color:${DISCIPLINAS[id].cor}">
         <strong>${esc(p.codigo ? p.codigo + ' · ' : '')}${esc(p.nome)}</strong>
-        <div class="meta"><span>${DISCIPLINAS[id].nome}</span>${d.responsavel ? `<span>· ${esc(d.responsavel)}</span>` : ''}
+        <div class="meta"><span>${DISCIPLINAS[id].nome}</span>${p.uf ? `<span>· ${esc(p.cidade)}/${esc(p.uf)}</span>` : ''}
           ${p.status === 'Pausado' ? '<span class="tag st-Pausado">pausado</span>' : ''}</div>
-        <div class="meta" style="margin-top:6px">${tagPrazo(p, d)}${d.entregues.length ? `<span class="tag">✓ ${d.entregues.length}/${DISCIPLINAS[id].entregaveis.length}</span>` : ''}</div>
-      </div>`).join('')}
+        <div class="bar fina"><span style="width:${progresso(p, id)}%;background:${DISCIPLINAS[id].cor}"></span></div>
+        <div class="meta">${tagPrazo(p, d)}<span class="tag">✓ ${feitos}/${total}</span></div>
+      </div>`;
+      }).join('')}
     </div>`;
   }).join('');
 }
@@ -379,8 +514,11 @@ function ligarArrastar() {
     const id = arrastando.dataset.disc;
     const nova = +col.dataset.etapa;
     if (p && p.disciplinas[id].etapa !== nova) {
-      p.disciplinas[id].etapa = nova;
-      registrar(p, `${DISCIPLINAS[id].nome}: etapa alterada para “${ETAPAS[nova].nome}”`);
+      const d = p.disciplinas[id];
+      d.etapa = nova;
+      d.entregueEm = nova === ULTIMA_ETAPA ? (d.entregueEm || hojeISO()) : '';
+      if (nova === ETAPA_REVISAO) d.revisao = (+d.revisao || 0) + 1;
+      registrar(p, `${DISCIPLINAS[id].nome}: etapa alterada para “${ETAPAS[nova].nome}”${nova === ETAPA_REVISAO ? ` (R${String(d.revisao).padStart(2, '0')})` : ''}`);
       salvar();
       toast(`${DISCIPLINAS[id].nome} → ${ETAPAS[nova].nome}`);
     }
@@ -405,7 +543,7 @@ function renderPrazos() {
     ['Próximos 30 dias', x => { const n = diasAte(x.d.prazo); return emAberto(x.p, x.d) && n > 7 && n <= 30; }],
     ['Mais adiante', x => emAberto(x.p, x.d) && diasAte(x.d.prazo) > 30],
     ['Sem prazo definido', x => emAberto(x.p, x.d) && !x.d.prazo],
-    ['Concluídos / fora de andamento', x => !emAberto(x.p, x.d)]
+    ['Entregues / fora de andamento', x => !emAberto(x.p, x.d)]
   ];
 
   const html = grupos.map(([titulo, fn]) => {
@@ -416,10 +554,13 @@ function renderPrazos() {
 }
 
 /* =========================================================
-   Dados (backup, CSV, equipe)
+   Dados (backup, CSV, configurações)
    ========================================================= */
 function renderDados() {
   $('#inp-equipe').value = state.equipe.join('\n');
+  $('#inp-circuitos').value = state.config.circuitos;
+  $('#grid-limites').innerHTML = UFS.map(uf =>
+    `<label>${uf}<input type="number" min="1" step="any" data-uf="${uf}" value="${esc(state.config.limites[uf] ?? '')}" placeholder="${LIMITE_HIDRANTE_PADRAO}"></label>`).join('');
 }
 
 function baixar(nome, conteudo, tipo) {
@@ -432,19 +573,25 @@ function baixar(nome, conteudo, tipo) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
+function csv(linhas) {
+  return '﻿' + linhas.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+}
+
 function exportarCSV() {
-  const cab = ['Código', 'Unidade', 'Cidade', 'UF', 'Tipo', 'Área (m²)', 'Status do projeto', 'Contato Gazin', 'Entrega final',
-    'Disciplina', 'Etapa', 'Progresso (%)', 'Responsável', 'Início', 'Prazo', 'Situação do prazo', 'Revisão', 'Entregáveis concluídos', 'Valor (R$)'];
+  const cab = ['Código', 'Unidade', 'Tipo', 'Cidade', 'UF', 'Área total (m²)', 'Área de venda (m²)', 'Layout recebido', 'Status do projeto',
+    'Qtd. de ar', 'Equipamentos', 'Prevenção', 'Disciplina', 'Etapa', 'Passos feitos', 'Progresso (%)', 'Responsável', 'Prazo',
+    'Situação do prazo', 'Revisão', 'Entregue em', 'Valor (R$)'];
   const linhas = itens().map(({ p, id, d }) => {
     const n = diasAte(d.prazo);
-    const sit = d.etapa === ULTIMA_ETAPA ? 'Concluído' : !d.prazo ? 'Sem prazo' : n < 0 ? `Atrasado ${-n} dias` : `Faltam ${n} dias`;
-    return [p.codigo, p.nome, p.cidade, p.uf, p.tipo, p.area, p.status, p.contato, fmtData(p.prazoFinal),
-      DISCIPLINAS[id].nome, ETAPAS[d.etapa].nome, progresso(d), d.responsavel, fmtData(d.inicio), fmtData(d.prazo), sit,
-      'R' + String(d.revisao).padStart(2, '0'), `${d.entregues.length}/${DISCIPLINAS[id].entregaveis.length}`,
-      String(d.valor || '').replace('.', ',')];
+    const { feitos, total } = contagem(p, id);
+    const sit = d.etapa === ULTIMA_ETAPA ? 'Entregue' : !d.prazo ? 'Sem prazo' : n < 0 ? `Atrasado ${-n} dias` : `Faltam ${n} dias`;
+    const q = qtdAr(p);
+    return [p.codigo, p.nome, p.tipo, p.cidade, p.uf, p.areaTotal, p.areaVenda, fmtData(p.layout), p.status,
+      q === null ? '' : num2.format(q), equipamentosAr(p) || '', nomePrevencao(tipoPrevencao(p)),
+      DISCIPLINAS[id].nome, ETAPAS[d.etapa].nome, `${feitos}/${total}`, progresso(p, id), d.responsavel, fmtData(d.prazo), sit,
+      'R' + String(d.revisao).padStart(2, '0'), fmtData(d.entregueEm), String(d.valor || '').replace('.', ',')];
   });
-  const csv = [cab, ...linhas].map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
-  baixar(`projetos-gazin-${hojeISO()}.csv`, '﻿' + csv, 'text/csv;charset=utf-8');
+  baixar(`projetos-gazin-${hojeISO()}.csv`, csv([cab, ...linhas]), 'text/csv;charset=utf-8');
 }
 
 function importarJSON(file) {
@@ -473,7 +620,6 @@ let discAtiva = DISC_IDS[0];
 function abrirProjeto(id, disc) {
   const orig = id ? state.projetos.find(p => p.id === id) : null;
   editando = orig ? structuredClone(orig) : normalizarProjeto({
-    solicitacao: hojeISO(),
     disciplinas: Object.fromEntries(DISC_IDS.map(d => [d, novaDisciplina(true)]))
   });
   discAtiva = disc || DISC_IDS[0];
@@ -482,21 +628,32 @@ function abrirProjeto(id, disc) {
   $('#dlg-titulo').textContent = orig ? (orig.codigo || 'Projeto') + ' · ' + orig.nome : 'Novo projeto';
   f.tipo.innerHTML = TIPOS.map(t => `<option>${t}</option>`).join('');
   f.status.innerHTML = STATUS.map(s => `<option>${s}</option>`).join('');
-  ['codigo', 'nome', 'tipo', 'cidade', 'uf', 'area', 'status', 'solicitacao', 'prazoFinal', 'contato', 'obs']
-    .forEach(k => { f[k].value = editando[k] ?? ''; });
+  f.uf.innerHTML = '<option value="">—</option>' + UFS.map(u => `<option>${u}</option>`).join('');
+  CAMPOS_GERAIS.forEach(k => { f[k].value = editando[k] ?? ''; });
   $('#btn-excluir').hidden = !orig;
 
   renderDisciplinasForm();
   renderHistorico();
+  atualizarCalculos();
   $('#dlg').showModal();
 }
 
 function renderDisciplinasForm() {
-  $('#disc-tabs').innerHTML = DISC_IDS.map(id => {
+  $('#disc-tabs').innerHTML = DISC_IDS.map((id, i) => {
     const d = editando.disciplinas[id];
     return `<button type="button" class="disc-tab ${id === discAtiva ? 'active' : ''}" data-tab="${id}" style="--cor:${DISCIPLINAS[id].cor}">
-      <span class="disc-dot" style="background:${d.ativa ? DISCIPLINAS[id].cor : '#cfd5df'}"></span>${DISCIPLINAS[id].nome}</button>`;
+      <span class="disc-dot" style="background:${d.ativa ? DISCIPLINAS[id].cor : '#cfd5df'}"></span>${i + 1}. ${DISCIPLINAS[id].nome}</button>`;
   }).join('');
+
+  const extras = {
+    climatizacao: d => `<label>Equipamentos adotados<input type="number" min="0" data-f="equipamentos" value="${esc(d.equipamentos)}" data-auto="equipamentos"></label>`,
+    prevencao: d => `<label class="span-2">Classificação<select data-f="classificacao">
+        <option value="auto" ${d.classificacao === 'auto' ? 'selected' : ''}>Automática (área total × limite da UF)</option>
+        <option value="completo" ${d.classificacao === 'completo' ? 'selected' : ''}>Completo (com hidrante)</option>
+        <option value="simplificado" ${d.classificacao === 'simplificado' ? 'selected' : ''}>Simplificado (sem hidrante)</option>
+      </select></label>`,
+    eletrico: d => `<label>Circuitos de ar<input type="number" min="0" data-f="circuitosAr" value="${esc(d.circuitosAr)}" data-auto="circuitosAr"></label>`
+  };
 
   const equipe = `<datalist id="dl-equipe">${state.equipe.map(n => `<option value="${esc(n)}">`).join('')}</datalist>`;
   $('#disc-panels').innerHTML = equipe + DISC_IDS.map(id => {
@@ -506,22 +663,32 @@ function renderDisciplinasForm() {
       <div class="disc-campos">
         <div class="grid-form">
           <label class="span-2">Etapa<select data-f="etapa">${ETAPAS.map((e, i) =>
-            `<option value="${i}" ${i === d.etapa ? 'selected' : ''}>${i + 1}. ${e.nome}${i === 5 ? ' — ' + cfg.aprovacao : ''}</option>`).join('')}</select></label>
+            `<option value="${i}" ${i === d.etapa ? 'selected' : ''}>${e.nome}</option>`).join('')}</select></label>
           <label class="span-2">Responsável<input data-f="responsavel" list="dl-equipe" value="${esc(d.responsavel)}"></label>
-          <label>Início<input type="date" data-f="inicio" value="${esc(d.inicio)}"></label>
           <label>Prazo de entrega<input type="date" data-f="prazo" value="${esc(d.prazo)}"></label>
           <label>Revisão nº<input type="number" min="0" data-f="revisao" value="${esc(d.revisao)}"></label>
-          <label>Valor / honorário (R$)<input type="number" min="0" step="any" data-f="valor" value="${esc(d.valor)}"></label>
-          <label class="span-4">Notas da disciplina<textarea rows="2" data-f="notas">${esc(d.notas)}</textarea></label>
+          <label>Valor (R$)<input type="number" min="0" step="any" data-f="valor" value="${esc(d.valor)}"></label>
+          ${extras[id](d)}
         </div>
-        <div class="checklist">${cfg.entregaveis.map((nome, i) =>
-          `<label><input type="checkbox" data-ent="${i}" ${d.entregues.includes(i) ? 'checked' : ''}> ${esc(nome)}</label>`).join('')}</div>
+        <h3 class="sub">Passo a passo</h3>
+        <ol class="checklist">${cfg.passos.map(s =>
+          `<li data-passo="${s.id}" ${s.so ? `data-so="${s.so}"` : ''}><label><input type="checkbox" data-feito="${s.id}" ${d.feitos.includes(s.id) ? 'checked' : ''}> ${esc(s.nome)}</label></li>`).join('')}</ol>
+        ${id === 'eletrico' ? `<div class="circuitos">
+          <div class="row"><h3 class="sub grow" id="tit-circuitos">Quadro de circuitos</h3>
+            <button type="button" class="btn sm" id="btn-copiar-circ">Copiar tabela</button>
+            <button type="button" class="btn sm" id="btn-csv-circ">Baixar .csv</button></div>
+          <div class="table-wrap"><table class="table mini"><thead><tr><th>Circ.</th><th>Descrição</th><th>Esquema</th><th>Método</th><th>Tensão</th><th>Seção (mm²)</th><th>Disj. (A)</th></tr></thead>
+          <tbody id="tbody-circuitos"></tbody></table></div></div>` : ''}
+        <label class="notas">Notas<textarea rows="2" data-f="notas">${esc(d.notas)}</textarea></label>
       </div>
     </div>`;
   }).join('');
 }
 
-function lerDisciplinasForm() {
+function lerFormulario() {
+  const f = $('#form-projeto');
+  CAMPOS_GERAIS.forEach(k => { editando[k] = f[k].value.trim(); });
+  editando.uf = editando.uf.toUpperCase();
   DISC_IDS.forEach(id => {
     const painel = $(`[data-panel="${id}"]`);
     const d = editando.disciplinas[id];
@@ -529,8 +696,49 @@ function lerDisciplinasForm() {
       const k = el.dataset.f;
       d[k] = el.type === 'checkbox' ? el.checked : (k === 'etapa' || k === 'revisao') ? +el.value || 0 : el.value;
     });
-    d.entregues = $$('[data-ent]', painel).filter(c => c.checked).map(c => +c.dataset.ent);
+    d.feitos = $$('[data-feito]', painel).filter(c => c.checked).map(c => c.dataset.feito);
   });
+}
+
+/* Atualiza o resumo automático, o passo de hidrante e o quadro de circuitos enquanto o formulário é editado */
+function atualizarCalculos() {
+  lerFormulario();
+  const p = editando;
+  const q = qtdAr(p);
+  const equip = equipamentosAr(p);
+  const tipo = tipoPrevencao(p);
+  const circ = gerarCircuitos(p);
+  const nAr = circuitosArDe(p);
+  const area = parseFloat(p.areaTotal);
+
+  $('#resumo').innerHTML = `
+    <div class="res" style="--cor:var(--c-climatizacao)"><small>Climatização · quantidade de ar</small>
+      <strong>${q === null ? '—' : num2.format(q)}</strong>
+      <span>${q === null ? 'Informe a área de venda' : `${num0.format(p.areaVenda)} m² ÷ (57000/700) → ${equip} equipamento(s)`}</span></div>
+    <div class="res" style="--cor:var(--c-prevencao)"><small>Prevenção · tipo de projeto</small>
+      <strong>${tipo ? nomePrevencao(tipo) : '—'}</strong>
+      <span>${p.disciplinas.prevencao.classificacao !== 'auto' ? 'Definido manualmente'
+        : tipo ? `${num0.format(area)} m² ${tipo === 'completo' ? '>' : '≤'} ${num0.format(limiteUF(p.uf))} m² (limite ${p.uf})` : 'Informe área total e UF'}</span></div>
+    <div class="res" style="--cor:var(--c-eletrico)"><small>Elétrico · quadro de circuitos</small>
+      <strong>${circ.length} circuitos</strong>
+      <span>${nAr} circuito(s) de ar${p.disciplinas.eletrico.circuitosAr === '' ? ' (da climatização)' : ''}</span></div>`;
+
+  const inpEquip = $('[data-auto="equipamentos"]');
+  if (inpEquip) inpEquip.placeholder = q === null ? 'auto' : `auto: ${q === null ? '' : Math.ceil(q)}`;
+  const inpCirc = $('[data-auto="circuitosAr"]');
+  if (inpCirc) inpCirc.placeholder = `auto: ${equip}`;
+
+  $$('[data-so]').forEach(li => { li.hidden = li.dataset.so !== tipo; });
+
+  const tb = $('#tbody-circuitos');
+  if (tb) {
+    tb.innerHTML = circ.map(c => `<tr${/^AR\s/.test(c[1]) ? ' class="ar"' : ''}>${c.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('');
+    $('#tit-circuitos').textContent = `Quadro de circuitos (${circ.length})`;
+  }
+
+  const drive = urlSegura(p.drive);
+  $('#lnk-drive').hidden = !drive;
+  if (drive) $('#lnk-drive').href = drive;
 }
 
 function renderHistorico() {
@@ -540,36 +748,38 @@ function renderHistorico() {
 }
 
 function registrar(p, texto) {
-  const agora = new Date();
-  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  p.historico.push({ data: local, texto });
+  p.historico.push({ data: isoLocal().slice(0, 16), texto });
 }
 
 function salvarProjeto() {
-  const f = $('#form-projeto');
-  lerDisciplinasForm();
-  ['codigo', 'nome', 'tipo', 'cidade', 'uf', 'area', 'status', 'solicitacao', 'prazoFinal', 'contato', 'obs']
-    .forEach(k => { editando[k] = f[k].value.trim(); });
-  editando.uf = editando.uf.toUpperCase();
-
+  lerFormulario();
   const idx = state.projetos.findIndex(p => p.id === editando.id);
-  if (idx >= 0) {
-    const antigo = state.projetos[idx];
+  const antigo = idx >= 0 ? state.projetos[idx] : null;
+
+  DISC_IDS.forEach(id => ajustarEtapa(editando, id));
+
+  if (antigo) {
+    if (!antigo.layout && editando.layout) registrar(editando, `Layout recebido em ${fmtData(editando.layout)}`);
     DISC_IDS.forEach(id => {
       const a = antigo.disciplinas[id], n = editando.disciplinas[id];
       if (a.ativa && n.ativa && a.etapa !== n.etapa) registrar(editando, `${DISCIPLINAS[id].nome}: etapa alterada para “${ETAPAS[n.etapa].nome}”`);
       if (a.ativa !== n.ativa) registrar(editando, `${DISCIPLINAS[id].nome}: ${n.ativa ? 'incluída' : 'removida'} do escopo`);
+      if (n.feitos.includes('envio') && !a.feitos.includes('envio')) registrar(editando, `${DISCIPLINAS[id].nome}: PDF enviado no grupo e no Drive`);
     });
     if (antigo.status !== editando.status) registrar(editando, `Status do projeto: ${editando.status}`);
     state.projetos[idx] = editando;
   } else {
-    registrar(editando, 'Projeto cadastrado');
+    registrar(editando, 'Projeto cadastrado' + (editando.layout ? ` (layout recebido em ${fmtData(editando.layout)})` : ''));
     state.projetos.push(editando);
   }
   salvar();
   $('#dlg').close();
   toast('Projeto salvo.');
   render();
+}
+
+function circuitosTabela() {
+  return [['Circuito', 'Descrição', 'Esquema', 'Método de inst.', 'Tensão (V)', 'Seção (mm²)', 'Disj. (A)'], ...gerarCircuitos(editando)];
 }
 
 function ligarModal() {
@@ -584,11 +794,23 @@ function ligarModal() {
     $$('.disc-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === discAtiva));
   });
 
-  $('#disc-panels').addEventListener('change', e => {
+  $('#form-projeto').addEventListener('input', atualizarCalculos);
+  $('#form-projeto').addEventListener('change', e => {
     if (e.target.dataset.f === 'ativa') {
       const painel = e.target.closest('.disc-panel');
       painel.classList.toggle('off', !e.target.checked);
       $(`[data-tab="${painel.dataset.panel}"] .disc-dot`).style.background = e.target.checked ? DISCIPLINAS[painel.dataset.panel].cor : '#cfd5df';
+    }
+    atualizarCalculos();
+  });
+
+  $('#disc-panels').addEventListener('click', e => {
+    if (e.target.id === 'btn-copiar-circ') {
+      const txt = circuitosTabela().map(l => l.join('\t')).join('\n');
+      navigator.clipboard?.writeText(txt).then(() => toast('Tabela copiada. Cole no Excel ou no AutoCAD.'), () => toast('Não foi possível copiar.'));
+    }
+    if (e.target.id === 'btn-csv-circ') {
+      baixar(`circuitos-${(editando.codigo || editando.nome || 'projeto').replace(/[^\w-]+/g, '_')}.csv`, csv(circuitosTabela()), 'text/csv;charset=utf-8');
     }
   });
 
@@ -619,21 +841,31 @@ function ligarModal() {
    Dados de exemplo
    ========================================================= */
 function exemplos() {
-  const d = n => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
-  const disc = (etapa, prazo, resp, valor, ent = []) => ({ ...novaDisciplina(true), etapa, prazo: d(prazo), inicio: d(-30), responsavel: resp, valor, entregues: ent });
+  const d = n => { const x = new Date(); x.setDate(x.getDate() + n); return isoLocal(x).slice(0, 10); };
+  const todos = id => DISCIPLINAS[id].passos.map(s => s.id);
+  const disc = (etapa, prazo, feitos = []) => ({ ...novaDisciplina(true), etapa, prazo: d(prazo), responsavel: 'Hugo', feitos });
   const off = () => novaDisciplina(false);
   return [
-    { codigo: 'GZ-26-001', nome: 'Loja nova – Av. Brasil', cidade: 'Umuarama', uf: 'PR', tipo: 'Loja nova', area: 1250, prazoFinal: d(40),
-      contato: 'Eng. obras Gazin', disciplinas: { eletrico: disc(3, 12, 'Hugo', 8500, [0, 1, 2]), climatizacao: disc(2, 20, 'Hugo', 6200, [0]), prevencao: disc(1, 35, 'Hugo', 5400) } },
-    { codigo: 'GZ-26-002', nome: 'Reforma loja 218', cidade: 'Cuiabá', uf: 'MT', tipo: 'Reforma de loja', area: 820, prazoFinal: d(10),
-      disciplinas: { eletrico: disc(4, -2, 'Hugo', 4800, [0, 1, 2, 3, 4, 8]), climatizacao: disc(5, 4, 'Hugo', 3900, [0, 1, 2, 3, 4, 8, 9]), prevencao: off() } },
-    { codigo: 'GZ-26-003', nome: 'Centro de distribuição – ampliação', cidade: 'Douradina', uf: 'PR', tipo: 'Centro de distribuição', area: 6400, prazoFinal: d(90),
-      disciplinas: { eletrico: disc(1, 45, 'Hugo', 22000), climatizacao: off(), prevencao: disc(2, 60, 'Hugo', 18000, [0]) } },
-    { codigo: 'GZ-26-004', nome: 'Loja 145 – adequação AVCB', cidade: 'Porto Velho', uf: 'RO', tipo: 'Reforma de loja', area: 640, prazoFinal: d(5),
-      disciplinas: { eletrico: off(), climatizacao: off(), prevencao: disc(5, 3, 'Hugo', 4200, [0, 1, 2, 3, 4, 5, 7, 8]) } },
-    { codigo: 'GZ-25-019', nome: 'Loja nova – Shopping', cidade: 'Goiânia', uf: 'GO', tipo: 'Loja nova', area: 980, status: 'Concluído',
-      disciplinas: { eletrico: disc(6, -20, 'Hugo', 7600, [...Array(12).keys()]), climatizacao: disc(6, -25, 'Hugo', 5800, [...Array(12).keys()]), prevencao: disc(6, -15, 'Hugo', 5000, [...Array(12).keys()]) } }
-  ].map(p => { const n = normalizarProjeto({ solicitacao: d(-35), ...p }); registrar(n, 'Projeto de exemplo'); return n; });
+    { codigo: 'GZ-26-001', nome: 'Loja nova – Av. Brasil', cidade: 'Umuarama', uf: 'PR', tipo: 'Loja nova', areaTotal: 1250, areaVenda: 980,
+      layout: d(-6), prazoFinal: d(25), contato: 'Eng. obras Gazin',
+      disciplinas: { climatizacao: disc(2, 2, ['calculo', 'distribuicao']), prevencao: disc(2, 9, ['norma']), eletrico: disc(1, 16) } },
+    { codigo: 'GZ-26-002', nome: 'Reforma loja 218', cidade: 'Cuiabá', uf: 'MT', tipo: 'Reforma de loja', areaTotal: 620, areaVenda: 540,
+      layout: d(-15), prazoFinal: d(5),
+      disciplinas: { climatizacao: disc(4, -6, todos('climatizacao')), prevencao: disc(2, -1, ['norma', 'sinalizacao', 'iluminacao']),
+        eletrico: disc(2, 4, ['distribuicao', 'caixa', 'leg-condutos']) } },
+    { codigo: 'GZ-26-003', nome: 'Loja nova – Centro', cidade: 'Porto Velho', uf: 'RO', tipo: 'Loja nova', areaTotal: 1480, areaVenda: 1150,
+      prazoFinal: d(45),
+      disciplinas: { climatizacao: disc(0, 12), prevencao: disc(0, 18), eletrico: disc(0, 25) } },
+    { codigo: 'GZ-26-004', nome: 'Ampliação loja 145', cidade: 'Goiânia', uf: 'GO', tipo: 'Ampliação', areaTotal: 900, areaVenda: 700,
+      layout: d(-20), prazoFinal: d(3),
+      disciplinas: { climatizacao: disc(4, -10, todos('climatizacao')), prevencao: disc(3, 2, todos('prevencao')),
+        eletrico: disc(2, 3, todos('eletrico').slice(0, 8)) } }
+  ].map(p => {
+    const n = normalizarProjeto(p);
+    DISC_IDS.forEach(id => ajustarEtapa(n, id));
+    registrar(n, 'Projeto de exemplo');
+    return n;
+  });
 }
 
 /* =========================================================
@@ -670,6 +902,20 @@ function init() {
     salvar();
     toast('Lista de responsáveis salva.');
   });
+  $('#btn-salvar-limites').addEventListener('click', () => {
+    state.config.limites = {};
+    $$('[data-uf]').forEach(inp => { if (parseFloat(inp.value) > 0) state.config.limites[inp.dataset.uf] = parseFloat(inp.value); });
+    salvar();
+    toast('Limites por estado salvos.');
+  });
+  $('#btn-salvar-circuitos').addEventListener('click', () => {
+    state.config.circuitos = $('#inp-circuitos').value.trim();
+    salvar();
+    toast('Tabela de circuitos salva.');
+  });
+  $('#btn-restaurar-circuitos').addEventListener('click', () => {
+    $('#inp-circuitos').value = CIRCUITOS_PADRAO;
+  });
   $('#btn-exemplo').addEventListener('click', () => {
     state.projetos.push(...exemplos());
     if (!state.equipe.includes('Hugo')) state.equipe.push('Hugo');
@@ -679,9 +925,9 @@ function init() {
   });
   $('#btn-limpar').addEventListener('click', () => {
     if (!confirm('Apagar TODOS os projetos deste navegador? Exporte um backup antes se precisar.')) return;
-    state = estadoVazio();
+    state = { ...estadoVazio(), equipe: state.equipe, config: state.config };
     salvar();
-    toast('Dados apagados.');
+    toast('Projetos apagados.');
     render();
   });
 

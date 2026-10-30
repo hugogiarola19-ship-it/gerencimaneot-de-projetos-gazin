@@ -16,7 +16,7 @@
       <span class="brand-mark">G</span>
       <div>
         <strong>Projetos Complementares</strong>
-        <small>Gazin · Elétrico · Climatização · Prevenção</small>
+        <small>Gazin · Climatização · Prevenção · Elétrico</small>
       </div>
     </div>
     <nav class="tabs" role="tablist">
@@ -63,8 +63,8 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Código</th><th>Unidade</th><th>Cidade/UF</th><th>Tipo</th>
-                <th>Elétrico</th><th>Climatização</th><th>Prevenção</th><th>Status</th>
+                <th>Código</th><th>Unidade</th><th>Cidade/UF</th><th>Área venda / total (m²)</th>
+                <th id="th-disc"></th><th>Status</th>
               </tr>
             </thead>
             <tbody id="tbody-projetos"></tbody>
@@ -113,6 +113,23 @@
           </div>
         </div>
         <div class="card">
+          <h2>Prevenção: limite de área por estado</h2>
+          <p>Área total construída (m²) acima da qual o projeto é <b>completo, com hidrante</b>. Até o limite, é simplificado.
+            Em branco = 750 m². Confira com a norma do Corpo de Bombeiros de cada estado.</p>
+          <div class="grid-uf" id="grid-limites"></div>
+          <div class="row"><button class="btn" id="btn-salvar-limites">Salvar limites</button></div>
+        </div>
+        <div class="card">
+          <h2>Elétrico: tabela de circuitos padrão</h2>
+          <p>Uma linha por circuito: <code>Descrição; Esquema; Método; Tensão; Seção; Disjuntor</code>.
+            As linhas <code>AR 01</code>, <code>AR 02</code>… viram o bloco de ar-condicionado, ajustado à quantidade de equipamentos de cada loja.</p>
+          <textarea id="inp-circuitos" rows="10" class="mono"></textarea>
+          <div class="row">
+            <button class="btn" id="btn-salvar-circuitos">Salvar tabela</button>
+            <button class="btn" id="btn-restaurar-circuitos">Restaurar padrão</button>
+          </div>
+        </div>
+        <div class="card">
           <h2>Responsáveis</h2>
           <p>Nomes sugeridos no campo “Responsável” das disciplinas (um por linha).</p>
           <textarea id="inp-equipe" rows="5"></textarea>
@@ -120,10 +137,10 @@
         </div>
         <div class="card">
           <h2>Dados de exemplo</h2>
-          <p>Carregue projetos fictícios para conhecer o sistema, ou apague tudo para começar.</p>
+          <p>Carregue projetos fictícios para conhecer o sistema, ou apague os projetos para começar (as configurações são mantidas).</p>
           <div class="row">
             <button class="btn" id="btn-exemplo">Carregar exemplos</button>
-            <button class="btn danger" id="btn-limpar">Apagar todos os dados</button>
+            <button class="btn danger" id="btn-limpar">Apagar todos os projetos</button>
           </div>
         </div>
       </div>
@@ -135,22 +152,28 @@
     <form id="form-projeto" method="dialog">
       <header class="dlg-head">
         <h2 id="dlg-titulo">Novo projeto</h2>
+        <a class="btn sm" id="lnk-drive" target="_blank" rel="noopener" hidden>Abrir pasta no Drive ↗</a>
         <button type="button" class="icon" data-close aria-label="Fechar">×</button>
       </header>
       <div class="dlg-body">
+        <h3 class="sub">Geral: dados do layout</h3>
         <fieldset class="grid-form">
           <label>Código<input name="codigo" placeholder="ex.: GZ-2026-014"></label>
-          <label class="span-2">Unidade / obra<input name="nome" required placeholder="ex.: Loja 312 – Centro"></label>
+          <label class="span-2">Loja / unidade<input name="nome" required placeholder="ex.: Loja 312 – Centro"></label>
           <label>Tipo<select name="tipo"></select></label>
           <label>Cidade<input name="cidade"></label>
-          <label>UF<input name="uf" maxlength="2"></label>
-          <label>Área (m²)<input name="area" type="number" min="0" step="any"></label>
-          <label>Status<select name="status"></select></label>
-          <label>Solicitado em<input name="solicitacao" type="date"></label>
+          <label>UF<select name="uf"></select></label>
+          <label>Área total (m²)<input name="areaTotal" type="number" min="0" step="any"></label>
+          <label>Área de venda (m²)<input name="areaVenda" type="number" min="0" step="any"></label>
+          <label>Layout recebido em<input name="layout" type="date"></label>
           <label>Entrega final<input name="prazoFinal" type="date"></label>
-          <label class="span-2">Contato Gazin<input name="contato" placeholder="nome / setor / telefone"></label>
-          <label class="span-4">Observações<textarea name="obs" rows="2"></textarea></label>
+          <label>Status<select name="status"></select></label>
+          <label>Contato Gazin<input name="contato" placeholder="nome / setor"></label>
+          <label class="span-4">Pasta no Drive (link)<input name="drive" type="url" placeholder="https://drive.google.com/…"></label>
+          <label class="span-4">Informações importantes<textarea name="obs" rows="2"></textarea></label>
         </fieldset>
+
+        <div class="resumo" id="resumo"></div>
 
         <div class="disc-tabs" id="disc-tabs"></div>
         <div id="disc-panels"></div>

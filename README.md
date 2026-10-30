@@ -1,10 +1,18 @@
 # Gerenciamento de Projetos Complementares — Gazin
 
-Sistema web para acompanhar os projetos complementares das unidades Gazin (lojas, CDs, escritórios), nas disciplinas:
+Sistema web para acompanhar os projetos complementares das unidades Gazin, seguindo o fluxo de trabalho:
 
-- **Elétrico**: cargas, unifilar, iluminação, tomadas, SPDA, lógica, aprovação na concessionária
-- **Climatização**: carga térmica, equipamentos, rede frigorígena, drenos, renovação de ar, PMOC
-- **Prevenção contra incêndio**: rotas de fuga, sinalização, iluminação de emergência, extintores, hidrantes, alarme, PPCI/PSCIP, AVCB/CLCB
+**Geral**: o projeto começa quando o layout é recebido, com as informações importantes: área total, área de venda e cidade/UF.
+
+1. **Climatização**
+   - quantidade de ar calculada **automaticamente**: área de venda ÷ (57000/700), com duas casas decimais (sugere o nº de equipamentos arredondando para cima, que pode ser alterado);
+   - distribuição dos equipamentos (avanço, painel de TVs) → cotar centro e ponto de dreno → gerar PDF → enviar no grupo e no Drive.
+2. **Prevenção**
+   - tipo de projeto definido **automaticamente** pela área total e pelo estado: acima do limite da UF é *completo (com hidrante)*, até o limite é *simplificado*. Os limites por estado ficam em **Dados** (padrão 750 m², ajuste conforme a norma do Corpo de Bombeiros de cada estado). Também é possível definir manualmente em cada projeto;
+   - placas de sinalização → iluminação de emergência → extintores → (hidrantes, se completo) → gerar PDF → enviar no grupo e no Drive.
+3. **Elétrico**
+   - quadro de circuitos gerado **automaticamente** a partir da tabela padrão, com o número de circuitos de ar igual ao de equipamentos da climatização (pode ser alterado). A tabela pode ser copiada para o Excel/AutoCAD ou baixada em .csv, e o padrão é editável em **Dados**;
+   - distribuição de lâmpadas, tomadas e pontos de ar → detalhes (caixa, legendas de condutos, fios e peças, quadro de cargas, quadro de demanda, diagrama unifilar) → cotar os pontos → gerar PDF → enviar no grupo e no Drive.
 
 Feito em HTML, CSS e JavaScript puro, sem build e sem dependências (só a fonte Inter do Google Fonts).
 
@@ -12,29 +20,23 @@ Feito em HTML, CSS e JavaScript puro, sem build e sem dependências (só a fonte
 
 | Aba | O que faz |
 |---|---|
-| **Painel** | Indicadores (projetos ativos, disciplinas em andamento, atrasadas, vencendo em 7 dias, valor em carteira), progresso por disciplina, próximos prazos e distribuição por etapa |
-| **Projetos** | Tabela de todas as obras, com a etapa e o prazo de cada disciplina; busca e filtros por status, disciplina, UF e atraso |
+| **Painel** | Projetos ativos, aguardando layout, disciplinas em aberto, atrasadas, vencendo em 7 dias e entregues nos últimos 30 dias; progresso por disciplina; próximos prazos |
+| **Projetos** | Tabela de todas as lojas com etapa, passos concluídos e prazo de cada disciplina; busca e filtros por status, disciplina, UF e atraso |
 | **Quadro** | Kanban por etapa (um cartão por projeto × disciplina); arraste os cartões para mudar a etapa |
 | **Prazos** | Agenda agrupada em: atrasados, esta semana, próximos 30 dias, mais adiante, sem prazo |
-| **Dados** | Backup/restauração (.json), exportação para planilha (.csv para Excel), lista de responsáveis e dados de exemplo |
+| **Dados** | Backup (.json), planilha (.csv), limites de área por estado, tabela de circuitos padrão, lista de responsáveis |
 
-Cada projeto tem:
+Cada projeto tem os dados do layout, o link da pasta no Drive, e para cada disciplina: etapa, responsável, prazo, nº da revisão, valor, notas e o **passo a passo** com checkbox. Há também um **histórico** automático (layout recebido, mudanças de etapa, envio do PDF) e registros manuais.
 
-- dados da obra: código, unidade, cidade/UF, tipo, área, contato Gazin, datas e status (Ativo, Pausado, Concluído, Cancelado);
-- para cada disciplina: se faz parte do escopo, etapa, responsável, início, prazo, nº da revisão, valor/honorário, notas e **checklist de entregáveis**;
-- **histórico** automático (mudanças de etapa e status) mais registros manuais (reuniões, pendências, revisões).
+### Etapas (avançam sozinhas conforme o passo a passo)
 
-### Etapas
+1. **Aguardando layout**: enquanto não há data de recebimento do layout
+2. **A fazer**: layout recebido
+3. **Em andamento**: ao marcar o primeiro passo
+4. **Revisão / ajustes**: manual, quando a Gazin pede alterações (ao arrastar no quadro, soma uma revisão)
+5. **Entregue**: ao marcar todos os passos (registra a data de entrega)
 
-1. Aguardando informações
-2. Levantamento
-3. Estudo preliminar
-4. Projeto executivo
-5. Revisão Gazin
-6. Aprovação externa (concessionária / Corpo de Bombeiros)
-7. Concluído
-
-Etapas, tipos de obra e entregáveis são configurados no topo de `app.js` (`DISCIPLINAS`, `ETAPAS`, `TIPOS`).
+Passos, etapas e fórmulas ficam no topo de `app.js`.
 
 ## Onde ficam os dados
 
@@ -43,14 +45,14 @@ Os dados ficam salvos no **navegador** (localStorage) do computador onde o siste
 - outro computador ou navegador não vê os mesmos dados; use **Dados → Exportar backup** e **Importar backup** para levar de um para outro;
 - limpar os dados do navegador apaga os projetos, então exporte backups com frequência.
 
-No primeiro acesso o sistema carrega alguns projetos de exemplo; apague-os em **Dados → Apagar todos os dados**.
+No primeiro acesso o sistema carrega alguns projetos de exemplo; apague-os em **Dados → Apagar todos os projetos** (as configurações são mantidas).
 
 ## Estrutura
 
 ```
 ├── index.html   # estrutura das telas
 ├── styles.css   # visual
-├── app.js       # lógica, configuração das disciplinas e persistência
+├── app.js       # lógica, fluxo de cada disciplina, cálculos e persistência
 └── README.md
 ```
 
