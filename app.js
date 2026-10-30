@@ -16,6 +16,20 @@ const ESTADOS = { AC: 'Acre', AM: 'Amazonas', PA: 'Pará', RO: 'Rondônia', MT: 
   TO: 'Tocantins', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', RS: 'Rio Grande do Sul' };
 const UFS = Object.keys(ESTADOS);
 
+// Norma de referência de cada estado, para conferir o limite de hidrante da ocupação C-1
+const NORMAS = {
+  AC: { nome: 'CBMAC – NT 22/2025 (hidrantes e mangotinhos)', url: 'https://www.cbmac.ac.gov.br/normas-tecnicas/' },
+  AM: { nome: 'CBMAM – Instruções técnicas (portal SISGAT)', url: 'https://sisgat.cbm.am.gov.br/' },
+  PA: { nome: 'CBMPA – IT 01 Parte I, Tabela 4C', url: 'https://www.bombeiros.pa.gov.br/wp-content/uploads/2019/01/IT-01-PARTE-I.pdf' },
+  RO: { nome: 'CBMRO – IT 01/2022 Anexo A, Tabela 6C', url: 'https://www.cbm.ro.gov.br/wp-content/uploads/2024/01/6.ANEXO_A_-_IT-01_PROCEDIMENTOS_ADMINISTRATIVOS.pdf' },
+  MT: { nome: 'CBMMT – NTCB 01/2026, Tabela 6C', url: 'https://www.bombeiros.mt.gov.br/documents/d/bombeiros/ntcb_0-1' },
+  GO: { nome: 'CBMGO – NT 01/2026, Anexo A', url: 'https://www.bombeiros.go.gov.br/wp-content/uploads/2026/05/NT-01_2026_-_Procedimentos_Administrativos.pdf' },
+  TO: { nome: 'CBMTO – NT 01 (Portaria 13/2022)', url: 'https://prevenir.bombeiros.to.gov.br/files/pdf/nt/nova/NT_01.pdf' },
+  MS: { nome: 'CBMMS – norma técnica de exigências (link não localizado)', url: '' },
+  MG: { nome: 'CBMMG – Decreto 47.998/2020, tabela do Grupo C', url: 'https://www.almg.gov.br/legislacao-mineira/texto/DEC/47998/2020/' },
+  RS: { nome: 'CBMRS – Decreto 51.803/2014 e RT 05, Tabela 6C', url: 'https://www.bombeiros.rs.gov.br/upload/arquivos/202001/17121500-dec-51803-14-ate-54942-19.pdf' }
+};
+
 // Classificação da ocupação das lojas no Corpo de Bombeiros
 const OCUPACAO = 'C-1';
 
@@ -232,6 +246,11 @@ function equipamentosAr(p) {
   if (n > 0) return n;
   const q = qtdAr(p);
   return q ? Math.ceil(q) : 0;
+}
+
+/* Limite confirmado = valor salvo na aba Dados; sem ele vale o padrão de 750 m², ainda a confirmar */
+function limiteConfirmado(uf) {
+  return parseFloat(state.config.limites[uf]) > 0;
 }
 
 function limiteUF(uf) {
@@ -565,7 +584,10 @@ function renderDados() {
   $('#inp-equipe').value = state.equipe.join('\n');
   $('#inp-circuitos').value = state.config.circuitos;
   $('#grid-limites').innerHTML = UFS.map(uf =>
-    `<label title="${ESTADOS[uf]}">${uf} · ${ESTADOS[uf]}<input type="number" min="1" step="any" data-uf="${uf}" value="${esc(state.config.limites[uf] ?? '')}" placeholder="${LIMITE_HIDRANTE_PADRAO}"></label>`).join('');
+    `<div class="uf-item"><label>${uf} · ${ESTADOS[uf]}
+      <input type="number" min="1" step="any" data-uf="${uf}" value="${esc(state.config.limites[uf] ?? '')}" placeholder="${LIMITE_HIDRANTE_PADRAO} (a confirmar)"></label>
+      <small>${limiteConfirmado(uf) ? '<span class="ok-txt">✓ confirmado</span>' : '<span class="aviso">a confirmar</span>'} ·
+      ${NORMAS[uf].url ? `<a href="${NORMAS[uf].url}" target="_blank" rel="noopener">${esc(NORMAS[uf].nome)} ↗</a>` : esc(NORMAS[uf].nome)}</small></div>`).join('');
 }
 
 function baixar(nome, conteudo, tipo) {
@@ -724,7 +746,7 @@ function atualizarCalculos() {
     <div class="res" style="--cor:var(--c-prevencao)"><small>Prevenção · ocupação ${OCUPACAO}</small>
       <strong>${tipo ? nomePrevencao(tipo) : '—'}</strong>
       <span>${p.disciplinas.prevencao.classificacao !== 'auto' ? 'Definido manualmente'
-        : tipo ? `${num0.format(area)} m² ${tipo === 'completo' ? '>' : '≤'} ${num0.format(limiteUF(p.uf))} m² (limite ${p.uf}, ${OCUPACAO})` : 'Informe área total e UF'}</span></div>
+        : tipo ? `${num0.format(area)} m² ${tipo === 'completo' ? '>' : '≤'} ${num0.format(limiteUF(p.uf))} m² (limite ${p.uf}, ${OCUPACAO})${limiteConfirmado(p.uf) ? '' : ' · <b class="aviso">limite a confirmar</b>'}` : 'Informe área total e UF'}</span></div>
     <div class="res" style="--cor:var(--c-eletrico)"><small>Elétrico · quadro de circuitos</small>
       <strong>${circ.length} circuitos</strong>
       <span>${nAr} circuito(s) de ar${p.disciplinas.eletrico.circuitosAr === '' ? ' (da climatização)' : ''}</span></div>`;
@@ -913,6 +935,7 @@ function init() {
     $$('[data-uf]').forEach(inp => { if (parseFloat(inp.value) > 0) state.config.limites[inp.dataset.uf] = parseFloat(inp.value); });
     salvar();
     toast('Limites por estado salvos.');
+    renderDados();
   });
   $('#btn-salvar-circuitos').addEventListener('click', () => {
     state.config.circuitos = $('#inp-circuitos').value.trim();
