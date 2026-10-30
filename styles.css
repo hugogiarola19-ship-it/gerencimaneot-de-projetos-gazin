@@ -32,7 +32,7 @@ p { color: var(--muted); margin: 0 0 12px; }
 
 /* ---------- topo ---------- */
 .topbar {
-  position: sticky; top: 0; z-index: 10;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
   display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
   padding: 10px 24px;
   background: var(--azul); color: #fff;
@@ -250,3 +250,7 @@ code { background: #eef1f6; padding: 1px 4px; border-radius: 4px; font-size: 12p
 @media (max-width: 760px) {
   .resumo { grid-template-columns: 1fr; }
 }
+
+.dlg-confirm { width: min(420px, 92vw); }
+.dlg-confirm form { padding: 20px; gap: 16px; }
+.dlg-confirm p { color: var(--texto); margin: 0; font-size: 14px; }

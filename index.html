@@ -109,7 +109,7 @@
           <p>Planilha com uma linha por projeto × disciplina (abre no Excel).</p>
           <div class="row">
             <button class="btn" id="btn-export-csv">Exportar planilha (.csv)</button>
-            <button class="btn" onclick="window.print()">Imprimir</button>
+            <button class="btn" id="btn-imprimir" onclick="window.print()">Imprimir</button>
           </div>
         </div>
         <div class="card">
@@ -193,6 +193,17 @@
         <button type="button" class="btn" data-close>Cancelar</button>
         <button type="submit" class="btn primary">Salvar</button>
       </footer>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-confirm" class="dlg-confirm">
+    <form method="dialog">
+      <p id="confirm-msg"></p>
+      <div class="row">
+        <span class="spacer"></span>
+        <button class="btn" value="cancelar">Cancelar</button>
+        <button class="btn danger" value="ok" id="confirm-ok">Confirmar</button>
+      </div>
     </form>
   </dialog>
 

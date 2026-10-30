@@ -226,6 +226,17 @@ function toast(msg) {
   toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+/* Confirmação dentro da página (substitui o confirm() do navegador) */
+function confirmar(msg, rotulo = 'Confirmar') {
+  const dlg = $('#dlg-confirm');
+  $('#confirm-msg').textContent = msg;
+  $('#confirm-ok').textContent = rotulo;
+  dlg.showModal();
+  return new Promise(resolve => {
+    dlg.addEventListener('close', () => resolve(dlg.returnValue === 'ok'), { once: true });
+  });
+}
+
 function urlSegura(u) {
   return /^https?:\/\//i.test(u || '') ? u : '';
 }
@@ -623,17 +634,19 @@ function exportarCSV() {
 
 function importarJSON(file) {
   const r = new FileReader();
-  r.onload = () => {
+  r.onload = async () => {
+    let dados;
     try {
-      const dados = normalizarEstado(JSON.parse(r.result));
-      if (!confirm(`Importar ${dados.projetos.length} projeto(s)? Os dados atuais deste navegador serão substituídos.`)) return;
-      state = dados;
-      salvar();
-      toast('Backup importado.');
-      render();
+      dados = normalizarEstado(JSON.parse(r.result));
     } catch (e) {
-      alert('Arquivo inválido: ' + e.message);
+      toast('Arquivo inválido. Escolha um backup .json exportado por este sistema.');
+      return;
     }
+    if (!await confirmar(`Importar ${dados.projetos.length} projeto(s)? Os dados atuais deste navegador serão substituídos.`, 'Importar')) return;
+    state = dados;
+    salvar();
+    toast('Backup importado.');
+    render();
   };
   r.readAsText(file);
 }
@@ -855,8 +868,8 @@ function ligarModal() {
     if (e.key === 'Enter') { e.preventDefault(); $('#btn-hist').click(); }
   });
 
-  $('#btn-excluir').addEventListener('click', () => {
-    if (!confirm('Excluir este projeto definitivamente?')) return;
+  $('#btn-excluir').addEventListener('click', async () => {
+    if (!await confirmar('Excluir este projeto definitivamente?', 'Excluir')) return;
     state.projetos = state.projetos.filter(p => p.id !== editando.id);
     salvar();
     dlg.close();
@@ -952,8 +965,8 @@ function init() {
     toast('Exemplos carregados.');
     mostrar('painel');
   });
-  $('#btn-limpar').addEventListener('click', () => {
-    if (!confirm('Apagar TODOS os projetos deste navegador? Exporte um backup antes se precisar.')) return;
+  $('#btn-limpar').addEventListener('click', async () => {
+    if (!await confirmar('Apagar TODOS os projetos deste navegador? Exporte um backup antes se precisar.', 'Apagar projetos')) return;
     state = { ...estadoVazio(), equipe: state.equipe, config: state.config };
     salvar();
     toast('Projetos apagados.');
@@ -962,6 +975,9 @@ function init() {
 
   ligarArrastar();
   ligarModal();
+
+  // dentro de outra página (ex.: pré-visualização) o navegador bloqueia a impressão
+  if (window.self !== window.top) $('#btn-imprimir').hidden = true;
 
   // primeira visita: carrega exemplos para o sistema não abrir vazio
   if (!localStorage.getItem(STORAGE_KEY)) {
